@@ -1,12 +1,12 @@
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
-# os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
 
 import torch
 
 from vllm import LLM, SamplingParams
 from transformers import Qwen3OmniMoeProcessor
 from qwen_omni_utils import process_mm_info
+import re
 
 def build_input(processor, messages, use_audio_in_video):
     text = processor.apply_chat_template(
@@ -45,9 +45,9 @@ def qwen3o_infer(messages: list, instruct_model=False, use_audio_in_video=True):
     llm = LLM(
             model=MODEL_PATH, trust_remote_code=True, gpu_memory_utilization=0.95,
             tensor_parallel_size=torch.cuda.device_count(),
-            limit_mm_per_prompt={'image': 3, 'video': 3, 'audio': 3},
+            limit_mm_per_prompt={'image': 0, 'video': 0, 'audio': 3},
             max_num_seqs=8,
-            max_model_len=32768,
+            max_model_len=65536, # 32768
             seed=1234,
     )
 
@@ -66,4 +66,10 @@ def qwen3o_infer(messages: list, instruct_model=False, use_audio_in_video=True):
     outputs = llm.generate(inputs, sampling_params=sampling_params)
 
     result = [outputs[i].outputs[0].text for i in range(len(outputs))]
-    return result
+    
+    if instruct_model:
+        return result
+    else:
+        _pattern = re.compile(r'(?is)^\s*<think>.*?(?:</think>|<\\think>)\s*')
+        result = [_pattern.sub('', r).lstrip() for r in result]
+        return result
