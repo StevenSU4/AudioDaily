@@ -1,7 +1,15 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
+os.environ['VLLM_WORKER_MULTIPROC_METHOD'] = 'spawn'
+os.environ["VLLM_LOGGING_LEVEL"] = "ERROR"
+os.environ['CUDA_VISIBLE_DEVICES'] = '1,3'
 
 import torch
+
+import warnings
+warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
 
 from vllm import LLM, SamplingParams
 from transformers import Qwen3OmniMoeProcessor
@@ -73,3 +81,4 @@ def qwen3o_infer(messages: list, instruct_model=False, use_audio_in_video=True):
         _pattern = re.compile(r'(?is)^\s*<think>.*?(?:</think>|<\\think>)\s*')
         result = [_pattern.sub('', r).lstrip() for r in result]
         return result
+    

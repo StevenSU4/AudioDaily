@@ -1,9 +1,26 @@
 import json
+import sys
+from multiprocessing import get_context, Queue
 import os
 from datetime import datetime, timedelta
 from pydub import AudioSegment
 from qwen_infer.qwen3o_infer_util import qwen3o_infer
 # from qwen_infer.qwen3o_serve_util import qwen3o_serve_infer
+
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m' 
+
+AudioDaily_normal = f"{Colors.BOLD}{Colors.GREEN}[AudioDaily]{Colors.END}"
+AudioDaily_error = f"{Colors.BOLD}{Colors.RED}[AudioDaily ERROR]{Colors.END}"
 
 
 
@@ -179,7 +196,7 @@ def parse_time(clips_data):
               "YYYY/MM/DD HH:MM:SS-YYYY/MM/DD HH:MM:SS"
     """
     if not clips_data:
-        print("No clips data provided.")
+        print(f"{AudioDaily_error} No clips data provided.")
         return []
     
     # Sort clips by start time
@@ -203,7 +220,7 @@ def parse_time(clips_data):
             # Allow small tolerance for floating point issues (1 second)
             time_gap = (clip_start - current_chunk_end).total_seconds()
             
-            if abs(time_gap) <= 1:
+            if abs(time_gap) <= 10:
                 # Clips are consecutive, extend current chunk
                 current_chunk_end = max(current_chunk_end, clip_end)
             else:
@@ -223,47 +240,6 @@ def parse_time(clips_data):
         )
     
     return time_chunks
-
-
-def retrieve_time(clips_data, time_chunks):
-    """
-    Retrieve all clips that fall within the specified time chunks.
-    
-    Args:
-        clips_data (list): List of clip dictionaries from the JSON database
-        time_chunks (list): List of time chunk strings in format 
-                           "YYYY/MM/DD HH:MM:SS-YYYY/MM/DD HH:MM:SS"
-        
-    Returns:
-        list: List of clip timestamps that fall within the specified time chunks
-    """
-    if not clips_data or not time_chunks:
-        print("No clips data or time chunks provided.")
-        return []
-    
-    # Parse time chunks into datetime ranges
-    chunk_ranges = []
-    for chunk in time_chunks:
-        start_str, end_str = chunk.split('-')
-        start_time = datetime.strptime(start_str, "%Y/%m/%d %H:%M:%S")
-        end_time = datetime.strptime(end_str, "%Y/%m/%d %H:%M:%S")
-        chunk_ranges.append((start_time, end_time))
-    
-    matching_clips = []
-    
-    for clip in clips_data:
-        clip_start_str, clip_end_str = clip['timestamp'].split('-')
-        clip_start = datetime.strptime(clip_start_str, "%Y/%m/%d %H:%M:%S")
-        clip_end = datetime.strptime(clip_end_str, "%Y/%m/%d %H:%M:%S")
-        
-        # Check if clip overlaps with any time chunk
-        for chunk_start, chunk_end in chunk_ranges:
-            # Clip overlaps if it starts before chunk ends and ends after chunk starts
-            if clip_start <= chunk_end and clip_end >= chunk_start:
-                matching_clips.append(clip['timestamp'])
-                break  # No need to check other chunks for this clip
-    
-    return matching_clips
 
 
 def label_clips_1(clips_data, json_path, llm_infer_function):
@@ -372,7 +348,7 @@ def clean_label_response(llm_response):
     return cleaned
 
 
-def label_clips_2(clips_data, target_timestamps, llm_infer_function):
+def label_clips_2(clips_data, target_timestamps, llm_infer_function, json_path):
     """
     Generate detailed label2 for specific clips and validate/update label1 if needed.
     
@@ -393,10 +369,10 @@ def label_clips_2(clips_data, target_timestamps, llm_infer_function):
             clips_to_label.append(clip)
     
     if not clips_to_label:
-        print("No target clips need label2 generation")
+        print(f"{AudioDaily_error} No target clips need label2 generation")
         return clips_data
     
-    print(f"Generating detailed labels for {len(clips_to_label)} target clips...")
+    print(f"{AudioDaily_normal} Generating detailed labels for {len(clips_to_label)} target clips...")
     
     # Prepare conversations for LLM
     messages_list = []
@@ -406,7 +382,7 @@ def label_clips_2(clips_data, target_timestamps, llm_infer_function):
         current_label1 = clip.get('label1', '')
         
         if not os.path.exists(audio_path):
-            print(f"Warning: Audio file not found: {audio_path}")
+            print(f"{AudioDaily_error} Audio file not found: {audio_path}")
             continue
             
         # Create detailed system prompt
@@ -466,18 +442,17 @@ LABEL1: [existing label1 if correct, or updated concise version]
                 # Update the clip
                 clip['label2'] = label2
                 if updated_label1 and updated_label1 != clip.get('label1', ''):
-                    print(f"Updated label1 for clip {result_index + 1}: '{clip['label1']}' -> '{updated_label1}'")
+                    print(f"{AudioDaily_normal} Updated label1 for clip {result_index + 1}: '{clip['label1']}' -> '{updated_label1}'")
                     clip['label1'] = updated_label1
                 
-                print(f"Processed clip {result_index + 1}:")
-                print(f"  Label1: {clip['label1']}")
-                print(f"  Label2: {label2[:100]}..." if len(label2) > 100 else f"  Label2: {label2}")
-                print()
+                print(f"{AudioDaily_normal} Processed clip {result_index + 1}:")
+                print(f"{AudioDaily_normal}  Label1: {clip['label1']}")
+                print(f"{AudioDaily_normal}  Label2: {label2[:100]}..." if len(label2) > 100 else f"{AudioDaily_normal}  Label2: {label2}")
                 
                 result_index += 1
                 
     except Exception as e:
-        print(f"Error during LLM inference: {e}")
+        print(f"{AudioDaily_error} Error during LLM inference: {e}")
         
     with open(json_path, 'w') as jf:
         json.dump(clips_data, jf, indent=2)
@@ -543,7 +518,7 @@ def parse_label_response(llm_response, current_label1):
     return label2, label1
 
 
-def main_qa_system(clips_data, llm_infer_function, user_question=None):
+def main_qa_system(clips_data, llm_infer_function, user_question, database_json_path):
     """
     Main QA system that answers user questions about daily life using audio recordings.
     
@@ -556,56 +531,187 @@ def main_qa_system(clips_data, llm_infer_function, user_question=None):
         str: Final answer to user's question
     """
     
-    # Get user question if not provided
-    if user_question is None:
-        user_question = input("Please enter your question about your daily life: ")
-    
-    print(f"User question: {user_question}")
-    print("Processing...")
+    print(f"{AudioDaily_normal} Processing...")
     
     # Step 1: Get time chunks covered in database
     available_time_chunks = parse_time(clips_data)
-    print(f"Available time chunks in database: {len(available_time_chunks)} chunks")
+    print(f"{AudioDaily_normal} Available time chunks in database: {len(available_time_chunks)} chunks")
     
     # Step 2: Ask LLM which time chunks are needed to answer the question
-    needed_time_chunks = ask_llm_for_relevant_time_chunks(
-        available_time_chunks, user_question, llm_infer_function
-    )
+    # Run the LLM call in a separate process and retrieve the result via a Queue
+    ctx = get_context('fork')  # use 'fork' to avoid pickling issues on Unix-like systems
+    result_queue = ctx.Queue()
+
+    def _time_chunks_worker(avail_chunks, question, llm_fn, out_q):
+        try:
+            res = ask_llm_for_relevant_time_chunks(avail_chunks, question, llm_fn)
+            out_q.put({'ok': True, 'result': res})
+        except Exception as e:
+            out_q.put({'ok': False, 'error': str(e)})
+
+    proc = ctx.Process(target=_time_chunks_worker, args=(available_time_chunks, user_question, llm_infer_function, result_queue))
+    proc.start()
+
+    # Wait for result with timeout and ensure process ends
+    TIMEOUT_SECONDS = 900
+    proc.join(TIMEOUT_SECONDS)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join()
+        print(f"{AudioDaily_error} LLM time-chunk process timed out and was terminated.")
+        needed_time_chunks = []
+    else:
+        try:
+            out = result_queue.get_nowait()
+            if out.get('ok'):
+                needed_time_chunks = out.get('result', [])
+            else:
+                print(f"{AudioDaily_error} Error from LLM process: {out.get('error')}")
+                needed_time_chunks = []
+        except Exception as e:
+            print(f"{AudioDaily_error} Failed to retrieve result from LLM process: {e}")
+            needed_time_chunks = []
+            
+    # needed_time_chunks = ask_llm_for_relevant_time_chunks(
+    #     available_time_chunks, user_question, llm_infer_function
+    # )
     
     if not needed_time_chunks:
-        return "I couldn't find relevant time periods in the available data to answer your question."
+        return f"{AudioDaily_error} I couldn't find relevant time periods in the available data to answer your question."
     
-    print(f"LLM identified {len(needed_time_chunks)} relevant time chunks")
+    print(f"{AudioDaily_normal} LLM identified {len(needed_time_chunks)} relevant time chunks")
     
     # Step 3: Retrieve clips within the needed time chunks
-    relevant_clips = retrieve_clips_by_time_chunks(clips_data, needed_time_chunks)
-    print(f"Retrieved {len(relevant_clips)} relevant audio clips")
+    relevant_clips = retrieve_time(clips_data, needed_time_chunks)
+    print(f"{AudioDaily_normal} Retrieved {len(relevant_clips)} relevant audio clips")
     
     # Step 4: Ask LLM if it can answer with label1 information
-    initial_response = ask_llm_initial_analysis(relevant_clips, user_question, llm_infer_function)
+    # Run initial analysis in a separate process and retrieve result via a Queue
+    init_result_queue = ctx.Queue()
+
+    def _initial_analysis_worker(clips, question, llm_fn, out_q):
+        try:
+            res = ask_llm_initial_analysis(clips, question, llm_fn)
+            out_q.put({'ok': True, 'result': res})
+        except Exception as e:
+            out_q.put({'ok': False, 'error': str(e)})
+
+    proc2 = ctx.Process(
+        target=_initial_analysis_worker,
+        args=(relevant_clips, user_question, llm_infer_function, init_result_queue)
+    )
+    proc2.start()
+
+    proc2.join(TIMEOUT_SECONDS)
+    if proc2.is_alive():
+        proc2.terminate()
+        proc2.join()
+        print(f"{AudioDaily_error} LLM initial-analysis process timed out and was terminated.")
+        initial_response = ""
+    else:
+        try:
+            out = init_result_queue.get_nowait()
+            if out.get('ok'):
+                initial_response = out.get('result', "")
+            else:
+                print(f"{AudioDaily_error} Error from LLM initial-analysis process: {out.get('error')}")
+                initial_response = ""
+        except Exception as e:
+            print(f"{AudioDaily_error} Failed to retrieve result from LLM initial-analysis process: {e}")
+            initial_response = ""
+    
+    # initial_response = ask_llm_initial_analysis(relevant_clips, user_question, llm_infer_function)
     
     # Step 5: Check LLM response
     if initial_response.startswith("ANSWER_FOUND"):
         # Extract and return the answer
         answer = extract_answer_from_response(initial_response)
-        return answer
+        return f"{AudioDaily_normal} Answer: {answer}"
     
     elif initial_response.startswith("ANSWER_NOT_FOUND"):
         # Extract timestamps that need more detail
         needed_timestamps = extract_timestamps_from_response(initial_response)
-        print(f"LLM needs more detailed information for {len(needed_timestamps)} clips")
+        print(f"{AudioDaily_normal} LLM needs more detailed information for {len(needed_timestamps)} clips")
         
         # Step 6: Generate label2 for the needed clips
-        updated_clips_data = label_clips_2(clips_data, needed_timestamps, llm_infer_function)
+        # Run detailed labeling in a separate process and retrieve results
+        label_result_queue = ctx.Queue()
+
+        def _label_worker(clips, timestamps, llm_fn, out_q):
+            try:
+                res = label_clips_2(clips, timestamps, llm_fn, database_json_path)
+                out_q.put({'ok': True, 'result': res})
+            except Exception as e:
+                out_q.put({'ok': False, 'error': str(e)})
+
+        proc3 = ctx.Process(
+            target=_label_worker,
+            args=(clips_data, needed_timestamps, llm_infer_function, label_result_queue)
+        )
+        proc3.start()
+
+        proc3.join(TIMEOUT_SECONDS)
+        if proc3.is_alive():
+            proc3.terminate()
+            proc3.join()
+            print(f"{AudioDaily_error} LLM detailed-label process timed out and was terminated.")
+            updated_clips_data = clips_data
+        else:
+            try:
+                out = label_result_queue.get_nowait()
+                if out.get('ok'):
+                    updated_clips_data = out.get('result', clips_data)
+                else:
+                    print(f"{AudioDaily_error} Error from detailed-label process: {out.get('error')}")
+                    updated_clips_data = clips_data
+            except Exception as e:
+                print(f"{AudioDaily_error} Failed to retrieve result from detailed-label process: {e}")
+                updated_clips_data = clips_data
+        
+        # updated_clips_data = label_clips_2(clips_data, needed_timestamps, llm_infer_function)
         
         # Step 7: Get final answer with detailed label2 information
-        final_answer = ask_llm_final_analysis(
-            updated_clips_data, needed_timestamps, user_question, llm_infer_function
+        # Step 7: Run final LLM analysis in a separate process and retrieve result via a Queue
+        final_result_queue = ctx.Queue()
+
+        def _final_analysis_worker(clips, timestamps, question, llm_fn, out_q):
+            try:
+                res = ask_llm_final_analysis(clips, timestamps, question, llm_fn)
+                out_q.put({'ok': True, 'result': res})
+            except Exception as e:
+                out_q.put({'ok': False, 'error': str(e)})
+
+        proc4 = ctx.Process(
+            target=_final_analysis_worker,
+            args=(updated_clips_data, needed_timestamps, user_question, llm_infer_function, final_result_queue)
         )
-        return final_answer
+        proc4.start()
+
+        proc4.join(TIMEOUT_SECONDS)
+        if proc4.is_alive():
+            proc4.terminate()
+            proc4.join()
+            print(f"{AudioDaily_error} LLM final-analysis process timed out and was terminated.")
+            final_answer = "The final LLM analysis timed out."
+        else:
+            try:
+                out = final_result_queue.get_nowait()
+                if out.get('ok'):
+                    final_answer = out.get('result', "")
+                else:
+                    print(f"{AudioDaily_error} Error from final-analysis process: {out.get('error')}")
+                    final_answer = "An error occurred during final LLM analysis."
+            except Exception as e:
+                print(f"{AudioDaily_error} Failed to retrieve result from final-analysis process: {e}")
+                final_answer = "Failed to retrieve final LLM analysis result."
+        
+        # final_answer = ask_llm_final_analysis(
+        #     updated_clips_data, needed_timestamps, user_question, llm_infer_function
+        # )
+        return f"{AudioDaily_normal} Answer: {final_answer}"
     
     else:
-        return "I encountered an issue while processing your question. Please try again."
+        return f"{AudioDaily_error} I encountered an issue while processing your question. Please try again."
 
 
 def ask_llm_for_relevant_time_chunks(available_time_chunks, user_question, llm_infer_function):
@@ -629,7 +735,7 @@ Given a user's question and a list of available time chunks from audio recording
 Return ONLY a Python list of strings in the format: ["YYYY/MM/DD HH:MM:SS-YYYY/MM/DD HH:MM:SS", ...]
 
 Rules:
-1. Only return time chunks that exist in the available time chunks
+1. The returned time chunk in the list should be either within one of the existing chunks or contains parts of them
 2. Be specific about time ranges relevant to the question
 3. Consider the context of the question (e.g., meal times, work hours, sleep, etc.)
 4. If no relevant time chunks exist, return an empty list
@@ -663,29 +769,23 @@ Return the relevant time chunks as a Python list:
         time_chunks = ast.literal_eval(response)
         return time_chunks
     except Exception as e:
-        print(f"Error parsing LLM response for time chunks: {e}")
+        print(f"{AudioDaily_error} Error parsing LLM response for time chunks: {e}")
         return []
 
 
-def retrieve_clips_by_time_chunks(clips_data, time_chunks):
+def retrieve_time(clips_data, time_chunks):
     """
-    Retrieve full clip data for clips that fall within the given time chunks.
+    Retrieve clips that fall within the specified time chunks.
     
     Args:
-        clips_data (list): List of clip dictionaries
-        time_chunks (list): List of time chunk strings
+        clips_data (list): List of clip dictionaries from the JSON database
+        time_chunks (list): List of time chunks in format "YYYY/MM/DD HH:MM:SS-YYYY/MM/DD HH:MM:SS"
         
     Returns:
-        list: Clip dictionaries that fall within the time chunks
-    """
-    return retrieve_time_full(clips_data, time_chunks)
-
-
-def retrieve_time_full(clips_data, time_chunks):
-    """
-    Extended version of retrieve_time that returns full clip data instead of just timestamps.
+        list: List of clip dictionaries that fall within the specified time chunks
     """
     if not clips_data or not time_chunks:
+        print(f"{AudioDaily_error} No clips data or time chunks provided.")
         return []
     
     # Parse time chunks into datetime ranges
@@ -832,7 +932,6 @@ Please provide a comprehensive answer to the user's question based on the detail
     for clip in detailed_clips:
         clips_info.append(f"""
 Timestamp: {clip['timestamp']}
-Coarse Label: {clip.get('label1', 'N/A')}
 Detailed Description: {clip.get('label2', 'N/A')}
 """)
     
@@ -862,26 +961,30 @@ Please provide a comprehensive answer to the user's question based on this detai
     return response
 
 
-# Example usage and main program entry point
+
 if __name__ == "__main__":
+    database_json_path = "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/metadata.json"
+    # metadata = chunk_audio_clips("/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_audios/251101_180000.mp3",
+    #                              database_json_path,
+    #                              "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results")
+    # labeled_metadata_1 = label_clips_1(metadata, database_json_path, qwen3o_infer)
+
+
+
     # Load your clips data
     try:
-        with open('audio_clips_database.json', 'r') as f:
+        with open(database_json_path, 'r') as f:
             clips_data = json.load(f)
     except FileNotFoundError:
-        print("Error: audio_clips_database.json not found. Please process your audio files first.")
+        print(f"{AudioDaily_error} Error: audio_clips_database.json not found. Please process your audio files first.")
         exit(1)
-    
-    # Initialize your LLM inference function (replace with your actual function)
-    # qwen3o_infer = your_llm_inference_function
-    
+
     # Run the QA system
-    print("=== Daily Life Audio QA System ===")
-    print("This system answers questions about your daily life using audio recordings from your wearable device.")
-    print()
-    
+    print(f"{AudioDaily_normal} === AudioDaily: Daily Life Audio QA System ===")
+    print(f"{AudioDaily_normal} This system answers questions about your daily life using audio recordings from your wearable device.")
+
     while True:
-        user_question = input("\nEnter your question (or 'quit' to exit): ").strip()
+        user_question = input(f"\n{AudioDaily_normal} Enter your question (or 'quit' to exit): ").strip()
         
         if user_question.lower() in ['quit', 'exit', 'q']:
             break
@@ -889,21 +992,9 @@ if __name__ == "__main__":
         if not user_question:
             continue
             
-        # In a real implementation, you would call:
-        # answer = main_qa_system(clips_data, qwen3o_infer, user_question)
-        # print(f"\nAnswer: {answer}")
+        user_question = "Today is " + datetime.now().strftime("%Y/%m/%d") + ". " + user_question
+        answer = main_qa_system(clips_data, qwen3o_infer, user_question, database_json_path)
+        print(f"\n{answer}\n")
         
-        # For demo purposes:
-        print("\n[This would call the main_qa_system with your LLM function]")
-        print(f"Question: {user_question}")
-        print("System would process this using the available audio clips and provide an answer.")
-
-
-
-database_json_path = "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/metadata.json"
-metadata = chunk_audio_clips("/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_audios/251111_210000.WAV",
-                             database_json_path,
-                             "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results")
-labeled_metadata_1 = label_clips_1(metadata, database_json_path, qwen3o_infer)
-
-
+    print(f"{AudioDaily_normal} Exiting AudioDaily QA System. Goodbye!")
+    sys.exit(0)

@@ -291,7 +291,7 @@
     "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251111_210140.wav",
     "timestamp": "2025/11/11 21:01:40-2025/11/11 21:02:10",
     "label1": "classroom, discussing AI in education",
-    "label2": ""
+    "label2": "A student or researcher is giving a presentation in a quiet classroom or academic seminar room. The space has a low hum of ambient noise, faint rustling from papers or clothing, and subtle chair movements, suggesting a seated audience. The speaker is discussing the application of AI in education, specifically proposing its use for homework feedback systems to improve student engagement and academic outcomes. They transcribe phrases like \"...AI and education, maybe around for homework feedback, improve student engagement...\", \"It's specific, actionable, and has a clear outcome,\" and \"Now, let's move to another stage. Leo...\". The speaker is actively presenting their ideas to peers or an instructor during a structured class session or workshop."
   },
   {
     "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251111_210205.wav",
@@ -369,6 +369,96 @@
     "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251111_210705.wav",
     "timestamp": "2025/11/11 21:07:05-2025/11/11 21:07:23",
     "label1": "conference, presenting",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180000.wav",
+    "timestamp": "2025/11/01 18:00:00-2025/11/01 18:00:30",
+    "label1": "hospital room, walking with medical equipment",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180025.wav",
+    "timestamp": "2025/11/01 18:00:25-2025/11/01 18:00:55",
+    "label1": "train, commuting",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180050.wav",
+    "timestamp": "2025/11/01 18:00:50-2025/11/01 18:01:20",
+    "label1": "subway, commuting",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180115.wav",
+    "timestamp": "2025/11/01 18:01:15-2025/11/01 18:01:45",
+    "label1": "subway, riding with people talking",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180140.wav",
+    "timestamp": "2025/11/01 18:01:40-2025/11/01 18:02:10",
+    "label1": "subway station, waiting for train",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180205.wav",
+    "timestamp": "2025/11/01 18:02:05-2025/11/01 18:02:35",
+    "label1": "train station, boarding",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180230.wav",
+    "timestamp": "2025/11/01 18:02:30-2025/11/01 18:03:00",
+    "label1": "restaurant, eating",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180255.wav",
+    "timestamp": "2025/11/01 18:02:55-2025/11/01 18:03:25",
+    "label1": "subway station, waiting for train",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180320.wav",
+    "timestamp": "2025/11/01 18:03:20-2025/11/01 18:03:50",
+    "label1": "subway station, waiting for train",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180345.wav",
+    "timestamp": "2025/11/01 18:03:45-2025/11/01 18:04:15",
+    "label1": "subway station, waiting for train",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180410.wav",
+    "timestamp": "2025/11/01 18:04:10-2025/11/01 18:04:40",
+    "label1": "train, commuting",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180435.wav",
+    "timestamp": "2025/11/01 18:04:35-2025/11/01 18:05:05",
+    "label1": "subway station, commuting",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180500.wav",
+    "timestamp": "2025/11/01 18:05:00-2025/11/01 18:05:30",
+    "label1": "indoor court, playing ball game",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180525.wav",
+    "timestamp": "2025/11/01 18:05:25-2025/11/01 18:05:55",
+    "label1": "restaurant, eating",
+    "label2": ""
+  },
+  {
+    "path": "/aiot-nvme-15T-x2-hk01/home/aiot25-suyihang/AudioDaily/test_results/251101_180550.wav",
+    "timestamp": "2025/11/01 18:05:50-2025/11/01 18:06:09",
+    "label1": "restaurant, eating",
     "label2": ""
   }
 ]
