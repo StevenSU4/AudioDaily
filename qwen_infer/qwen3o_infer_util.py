@@ -82,3 +82,50 @@ def qwen3o_infer(messages: list, instruct_model=False, use_audio_in_video=True):
         result = [_pattern.sub('', r).lstrip() for r in result]
         return result
     
+    
+# use case:
+
+# # Conversation with audio only
+# conversation2 = [
+#     {
+#         "role": "user",
+#         "content": [
+#             {"type": "audio", "audio": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Omni/demo/cough.wav"},
+#             {"type": "text", "text": "What can you hear in this audio?"},
+#         ]
+#     }
+# ]
+
+# # Conversation with pure text and system prompt
+# conversation3 = [
+#     {
+#         "role": "system",
+#         "content": [
+#             {"type": "text", "text": "You are Qwen-Omni."}
+#         ],
+#     },
+#     {
+#         "role": "user",
+#         "content": "Who are you? Answer in one sentence."
+#     }
+# ]
+
+# # Conversation with mixed media
+# conversation4 = [
+#     {
+#         "role": "user",
+#         "content": [
+#             {"type": "image", "image": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Omni/demo/cars.jpg"},
+#             {"type": "audio", "audio": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Omni/cookbook/asr_fr.wav"},
+#             {"type": "text", "text": "What can you see and hear? Answer in one sentence."}
+#         ],
+#     }
+# ]
+
+# messages_list = [conversation2, conversation3]
+
+# result = qwen3o_infer(messages_list)
+
+# print("Results:")
+# for i, res in enumerate(result):
+#     print(f"Conversation {i+1} Response: {res}")

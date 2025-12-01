@@ -64,3 +64,25 @@ def qwen3o_serve_infer(
     except requests.exceptions.RequestException as e:
         print(f"Error calling LLM API: {e}")
         return None
+
+
+# use case:
+
+# multimodal_content = [
+#     {
+#         "type": "image_url",
+#         "image_url": {"url": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Omni/demo/cars.jpg"}
+#     },
+#     {
+#         "type": "audio_url", 
+#         "audio_url": {"url": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Omni/demo/cough.wav"}
+#     },
+#     {
+#         "type": "text",
+#         "text": "What can you see and hear? Answer in one sentence."
+#     }
+# ]
+
+# result = qwen3o_serve_infer(system_message="You are a helpful assistant.", user_content=multimodal_content)
+
+# print("LLM response:", result)
